@@ -1,0 +1,211 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="format-detection" content="telephone=no">
+  <title>網尚店</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <div id="screenLoading" class="screen screen-center">
+    <div class="state-box">
+      <div class="state-spinner"></div>
+      <div id="loadingTitle" class="state-title">資料載入中</div>
+      <div id="loadingSubtitle" class="state-subtitle">系統正在整理最新產品與設定資料，請稍候…</div>
+    </div>
+  </div>
+
+  <div id="screenForm" class="screen hidden">
+    <div class="wrap">
+      <div class="card shop-hero">
+        <h1 id="shopTitle">網尚店</h1>
+        <div class="shop-subtitle">
+          選好貨品、填寫交收方式，提交時會即時核對庫存並建立單據。
+        </div>
+      </div>
+
+      <div class="card step-card step-1">
+        <div class="step-title-row">
+          <span class="step-badge">1</span>
+          <h2>選購產品</h2>
+        </div>
+        <div id="productContainer"></div>
+      </div>
+
+      <div class="summary">
+        <div class="summary-box step-card step-3">
+          <div class="step-title-row">
+            <span class="step-badge">2</span>
+            <h2>訂單摘要</h2>
+          </div>
+
+          <div class="summary-card-body">
+            <div class="row" id="orderSummary">未選擇產品</div>
+
+            <div class="row coupon-row">
+              <label for="couponCode">優惠碼</label>
+              <input id="couponCode" type="text" autocomplete="off" placeholder="如有優惠碼可在此輸入" oninput="updateSummary()">
+              <div id="couponHint" class="muted"></div>
+            </div>
+
+            <div class="row total-row"><strong>總金額：$<span id="totalAmount">0</span></strong></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card step-card step-2">
+        <div class="step-title-row">
+          <span class="step-badge">3</span>
+          <h2>交收方式</h2>
+        </div>
+
+        <div class="row">
+          <label>請選擇交收方式</label>
+          <div class="inline">
+            <label class="inline-item"><input type="radio" name="deliveryMethod" value="自取"> 自取</label>
+            <label class="inline-item"><input type="radio" name="deliveryMethod" value="校內送貨"> 校內送貨</label>
+            <label class="inline-item"><input type="radio" name="deliveryMethod" value="快遞到付"> 快遞到付</label>
+          </div>
+        </div>
+
+        <div class="row">
+          <label>請選擇付款方式</label>
+          <div id="paymentMethodWrap" class="inline">
+            <label class="inline-item"><input type="radio" name="paymentMethod" value="現金"> 現金</label>
+            <label class="inline-item"><input type="radio" name="paymentMethod" value="電子支付"> 電子支付</label>
+          </div>
+          <div id="courierPaymentHint" class="payment-note-box hidden">
+            <div class="muted">快遞到付只限電子支付，系統已自動設定付款方式為「電子支付」。</div>
+          </div>
+        </div>
+
+        <div id="sectionPickup" class="hidden">
+          <div class="row">
+            <label for="pickupCustomerName">顧客姓名</label>
+            <input type="text" id="pickupCustomerName" placeholder="請輸入顧客姓名">
+          </div>
+
+          <div class="row">
+            <label>是否校外人士？</label>
+            <div class="inline">
+              <label class="inline-item"><input type="radio" name="pickupIsExternal" value="false" checked> 否（校內）</label>
+              <label class="inline-item"><input type="radio" name="pickupIsExternal" value="true"> 是（校外）</label>
+            </div>
+          </div>
+
+          <div id="pickupExternalFields" class="hidden">
+            <div class="row">
+              <label for="pickupPhone">聯絡電話</label>
+              <input type="text" id="pickupPhone" placeholder="校外人士必填">
+            </div>
+            <div class="row">
+              <label for="pickupEmail">Email</label>
+              <input type="email" id="pickupEmail" placeholder="校外人士必填">
+            </div>
+          </div>
+        </div>
+
+        <div id="sectionSchool" class="hidden">
+          <div class="row">
+            <label for="schoolCustomerName">顧客姓名</label>
+            <input type="text" id="schoolCustomerName" placeholder="請輸入顧客姓名">
+          </div>
+
+          <div class="row">
+            <label for="schoolPlace">校內送貨地點</label>
+            <select id="schoolPlace"></select>
+          </div>
+
+          <div id="schoolPlaceOtherWrap" class="row hidden">
+            <label for="schoolPlaceOther">其他位置</label>
+            <input type="text" id="schoolPlaceOther" placeholder="請輸入具體位置">
+          </div>
+        </div>
+
+        <div id="sectionCourier" class="hidden">
+          <div class="row">
+            <label for="courierRecipientName">收件人姓名</label>
+            <input type="text" id="courierRecipientName" placeholder="請輸入收件人姓名">
+          </div>
+          <div class="row">
+            <label for="courierPhone">電話</label>
+            <input type="text" id="courierPhone" placeholder="必填">
+          </div>
+          <div class="row">
+            <label for="courierEmail">Email</label>
+            <input type="email" id="courierEmail" placeholder="必填">
+          </div>
+          <div class="row">
+            <label for="courierAddress">收件地址</label>
+            <textarea id="courierAddress" placeholder="請輸入完整地址"></textarea>
+          </div>
+          <div class="row">
+            <label for="courierRemark">備註（可選）</label>
+            <textarea id="courierRemark" placeholder="例如：送貨時段、特別安排"></textarea>
+          </div>
+        </div>
+
+        <div class="row">
+          <label for="customerNote">備註（如有額外要求可填寫）</label>
+          <textarea id="customerNote" placeholder="例如：請先聯絡、想星期五取貨、請放校務處、其他補充說明"></textarea>
+        </div>
+
+        <div id="sectionElectronicPayment" class="hidden">
+          <h3>電子支付資料</h3>
+          <div id="paymentProviderContainer"></div>
+
+          <div id="selectedPaymentInfo" class="payment-note-box hidden">
+            <div id="selectedPaymentName" class="epay-name"></div>
+            <div id="selectedPaymentNote" class="muted"></div>
+            <div id="selectedPaymentQrWrap" class="qr-wrap hidden">
+              <img id="selectedPaymentQr" src="" alt="收款碼">
+            </div>
+          </div>
+
+          <div class="row">
+            <label for="receiptFile">付款單據（必須上載）</label>
+            <input type="file" id="receiptFile" accept="image/*,.pdf,application/pdf">
+            <div class="muted">支援圖片或 PDF，建議檔案大小不超過 <span id="maxReceiptMb">8</span> MB。</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="submit-panel">
+        <div class="submit-actions">
+          <div id="msgBox" class="row"></div>
+          <div class="row submit-row">
+            <button id="submitBtn" class="btn" onclick="submitOrderForm()">提交訂單</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="screenProcessing" class="screen screen-center hidden">
+    <div class="state-box">
+      <div class="state-spinner"></div>
+      <div id="processingTitle" class="state-title">訂單處理中</div>
+      <div id="processingSubtitle" class="state-subtitle">系統正在提交資料，請稍候，請不要離開此頁面。</div>
+    </div>
+  </div>
+
+  <div id="screenResult" class="screen screen-center hidden">
+    <div class="state-box">
+      <div id="resultIcon" class="state-icon success">✓</div>
+      <div id="resultTitle" class="state-title">訂單已成功提交</div>
+      <div id="resultSubtitle" class="state-subtitle">你的訂單已處理完成。</div>
+      <div class="state-actions">
+        <a id="returnHomeLink" href="#" target="_top" rel="noopener noreferrer" class="return-home-link">返回主頁</a>
+      </div>
+    </div>
+  </div>
+
+    <script src="assets/js/config.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
