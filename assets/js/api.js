@@ -3,6 +3,8 @@
 
   var config = window.WS_SHOP_CONFIG || {};
   var bridgeFrame = null;
+  var bridgeWindow = null;
+  var bridgeTargetOrigin = '*';
   var bridgeReady = false;
   var bridgeReadyPromise = null;
   var pending = {};
@@ -82,12 +84,12 @@
           timer: timer
         };
 
-        bridgeFrame.contentWindow.postMessage({
+        (bridgeWindow || bridgeFrame.contentWindow).postMessage({
           source: 'ws-shop-pages',
           action: action,
           requestId: requestId,
           payload: payload || null
-        }, '*');
+        }, bridgeTargetOrigin || '*');
       });
     });
   }
@@ -98,6 +100,8 @@
     if (!isBridgeOrigin(event.origin)) return;
 
     if (data.type === 'ready') {
+      bridgeWindow = event.source || null;
+      bridgeTargetOrigin = event.origin || '*';
       if (pending.__bridgeReady) {
         pending.__bridgeReady.resolve();
         delete pending.__bridgeReady;
