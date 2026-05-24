@@ -99,6 +99,69 @@ var APP_DATA = {
       showOnlyScreen('screenResult');
     }
 
+    var INITIAL_DATA_CACHE_KEY = 'ws-shop-initial-data-v1';
+    var INITIAL_DATA_CACHE_MAX_AGE_MS = 10 * 60 * 1000;
+
+    function getDefaultInitialData() {
+      return {
+        products: [],
+        schoolPlaces: [],
+        maxReceiptMb: 8,
+        redirectUrl: '',
+        frontendMaxQty: 20,
+        paymentMethods: [],
+        coupons: {}
+      };
+    }
+
+    function applyInitialData(data) {
+      APP_DATA = data || getDefaultInitialData();
+
+      document.getElementById('shopTitle').innerText = APP_DATA.shopName || '網尚店';
+      document.getElementById('maxReceiptMb').innerText = APP_DATA.maxReceiptMb || 8;
+
+      renderProducts(APP_DATA.products || []);
+      renderSchoolPlaces(APP_DATA.schoolPlaces || []);
+      renderPaymentProviders(APP_DATA.paymentMethods || []);
+
+      updatePaymentMethodUI();
+      updateElectronicPaymentSection();
+      setMessage('', '');
+
+      showOnlyScreen('screenForm');
+    }
+
+    function readCachedInitialData() {
+      try {
+        if (!window.localStorage) return null;
+        var raw = window.localStorage.getItem(INITIAL_DATA_CACHE_KEY);
+        if (!raw) return null;
+
+        var cached = JSON.parse(raw);
+        if (!cached || !cached.data || !cached.savedAt) return null;
+        if (Date.now() - Number(cached.savedAt) > INITIAL_DATA_CACHE_MAX_AGE_MS) return null;
+        if (!Array.isArray(cached.data.products)) return null;
+
+        return cached.data;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function writeCachedInitialData(data) {
+      try {
+        if (!window.localStorage) return;
+        if (!data || !Array.isArray(data.products)) return;
+
+        window.localStorage.setItem(INITIAL_DATA_CACHE_KEY, JSON.stringify({
+          savedAt: Date.now(),
+          data: data
+        }));
+      } catch (e) {
+        // localStorage may be unavailable in some embedded browsers.
+      }
+    }
+
     
 function loadInitialData() {
       setLoadingState('資料載入中', '系統正在整理最新產品與設定資料，請稍候…');
@@ -108,31 +171,23 @@ function loadInitialData() {
         return;
       }
 
+      var cachedData = readCachedInitialData();
+      var hasShownCachedData = false;
+      if (cachedData) {
+        try {
+          applyInitialData(cachedData);
+          hasShownCachedData = true;
+          setMessage('正在更新最新產品資料…', 'muted');
+        } catch (cachedErr) {
+          console.error(cachedErr);
+        }
+      }
+
       window.ShopBackend.getInitialData()
         .then(function(data) {
           try {
-            APP_DATA = data || {
-              products: [],
-              schoolPlaces: [],
-              maxReceiptMb: 8,
-              redirectUrl: '',
-              frontendMaxQty: 20,
-              paymentMethods: [],
-              coupons: {}
-            };
-
-            document.getElementById('shopTitle').innerText = APP_DATA.shopName || '網尚店';
-            document.getElementById('maxReceiptMb').innerText = APP_DATA.maxReceiptMb || 8;
-
-            renderProducts(APP_DATA.products || []);
-            renderSchoolPlaces(APP_DATA.schoolPlaces || []);
-            renderPaymentProviders(APP_DATA.paymentMethods || []);
-
-            updatePaymentMethodUI();
-            updateElectronicPaymentSection();
-            setMessage('', '');
-
-            showOnlyScreen('screenForm');
+            applyInitialData(data || getDefaultInitialData());
+            writeCachedInitialData(APP_DATA);
           } catch (err) {
             console.error(err);
             setLoadingState('載入失敗', '❌ 前台顯示錯誤：' + (err && err.message ? err.message : err));
@@ -140,6 +195,10 @@ function loadInitialData() {
         })
         .catch(function(err) {
           console.error(err);
+          if (hasShownCachedData) {
+            setMessage('暫時未能更新最新資料，已顯示上次載入資料。提交時仍會即時核對庫存。', 'error');
+            return;
+          }
           setLoadingState('載入失敗', '❌ 載入失敗：' + (err && err.message ? err.message : err));
         });
     }
