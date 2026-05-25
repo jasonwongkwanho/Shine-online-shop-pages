@@ -317,7 +317,7 @@ function loadInitialData() {
             +   '</div>'
             +   (p.remark && !isPreorder ? '<div class="row muted">' + escapeHtml(p.remark) + '</div>' : '')
             +   (usesCustomOrderLines
-                  ? '<div class="row qty-row"><label>數量</label>' + renderCustomOrderTable(p.code, p.name, price, isPreorder) + '</div>'
+                  ? '<div class="row qty-row">' + renderCustomOrderTable(p.code, p.name, price, isPreorder) + '</div>'
                   : '<div class="row qty-row"><label>數量</label>' + renderQtySelect(p.code, p.name, price, stock, isPreorder) + '</div>')
             + '</div>';
         });
