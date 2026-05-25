@@ -298,7 +298,7 @@ function loadInitialData() {
           var usesCustomOrderLines = p && p.usesCustomOrderLines === true;
           var infoHtml = '';
           if (isPreorder) infoHtml += '<div class="inventory-text">需時製作，出貨時間會稍長</div>';
-          if (usesCustomOrderLines) infoHtml += '<div class="inventory-text">請填寫編號及數量</div>';
+          if (usesCustomOrderLines) infoHtml += '<div class="inventory-text">請在下方逐列填寫</div>';
           if (!isPreorder && !usesCustomOrderLines) infoHtml = '<div class="inventory-text">庫存量：' + stock + '</div>';
 
           html += ''
