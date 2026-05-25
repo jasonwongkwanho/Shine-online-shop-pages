@@ -56,6 +56,12 @@ var APP_DATA = {
       document.querySelectorAll('input[name="pickupIsExternal"]').forEach(function(el) {
         el.addEventListener('change', updatePickupFields);
       });
+
+      window.addEventListener('scroll', updateStickyCategoryTabs, { passive: true });
+      window.addEventListener('resize', updateStickyCategoryTabs);
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', updateStickyCategoryTabs);
+      }
     }
 
     function showOnlyScreen(screenId) {
@@ -335,6 +341,32 @@ function loadInitialData() {
         });
       });
       updateSummary();
+      updateStickyCategoryTabs();
+    }
+
+    function updateStickyCategoryTabs() {
+      var tabs = document.querySelector('.product-category-tabs');
+      var productCard = document.getElementById('productStepCard');
+      var container = document.getElementById('productContainer');
+      if (!tabs || !productCard || !container) return;
+
+      var cardRect = productCard.getBoundingClientRect();
+      var tabsHeight = tabs.offsetHeight || 0;
+      var shouldStick = cardRect.top <= 0 && cardRect.bottom > tabsHeight + 18;
+
+      if (shouldStick) {
+        var left = Math.max(8, cardRect.left + 12);
+        var width = Math.max(240, cardRect.width - 24);
+        tabs.classList.add('sticky-floating');
+        tabs.style.left = left + 'px';
+        tabs.style.width = width + 'px';
+        container.style.paddingTop = tabsHeight + 'px';
+      } else {
+        tabs.classList.remove('sticky-floating');
+        tabs.style.left = '';
+        tabs.style.width = '';
+        container.style.paddingTop = '';
+      }
     }
 
     function revealCategoryProducts(button) {
