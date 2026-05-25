@@ -7,6 +7,7 @@ var APP_DATA = {
       paymentMethods: [],
       coupons: {}
     };
+    var ACTIVE_CATEGORY = '';
 
     document.addEventListener('DOMContentLoaded', function() {
       applyDeviceMode();
@@ -100,7 +101,7 @@ var APP_DATA = {
     }
 
     var INITIAL_DATA_CACHE_KEY = 'ws-shop-initial-data-v1';
-    var INITIAL_DATA_CACHE_MAX_AGE_MS = 10 * 60 * 1000;
+    var INITIAL_DATA_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
     function getDefaultInitialData() {
       return {
@@ -243,6 +244,7 @@ function loadInitialData() {
       var container = document.getElementById('productContainer');
       if (!products || products.length === 0) {
         container.innerHTML = '<div class="empty">目前沒有可售產品。</div>';
+        ACTIVE_CATEGORY = '';
         updateSummary();
         return;
       }
@@ -254,14 +256,31 @@ function loadInitialData() {
         grouped[cat].push(p);
       });
 
-      var html = '';
-      Object.keys(grouped).forEach(function(cat) {
-        var theme = getCategoryTheme(cat);
+      var categories = Object.keys(grouped);
+      if (!ACTIVE_CATEGORY || !grouped[ACTIVE_CATEGORY]) {
+        ACTIVE_CATEGORY = categories[0] || '';
+      }
+      var previewLimit = 8;
 
-        html += '<div class="category-title" style="background:' + theme.titleBg + ';color:' + theme.titleColor + ';">' + escapeHtml(cat) + '</div>';
+      var html = '';
+      html += '<div class="product-category-tabs" role="tablist" aria-label="產品分類">';
+      categories.forEach(function(cat) {
+        var tabActive = cat === ACTIVE_CATEGORY;
+        html += '<button type="button" class="category-tab' + (tabActive ? ' active' : '') + '" data-category="' + escapeHtml(cat) + '">'
+          + escapeHtml(cat) + ' · ' + grouped[cat].length
+          + '</button>';
+      });
+      html += '</div>';
+
+      categories.forEach(function(cat) {
+        var theme = getCategoryTheme(cat);
+        var active = cat === ACTIVE_CATEGORY;
+
+        html += '<div class="category-panel' + (active ? ' active' : '') + '" data-category-panel="' + escapeHtml(cat) + '">';
+        html += '<div class="category-title" style="background:' + theme.titleBg + ';color:' + theme.titleColor + ';">' + escapeHtml(cat) + ' <span class="muted">(' + grouped[cat].length + ')</span></div>';
         html += '<div class="grid">';
 
-        grouped[cat].forEach(function(p) {
+        grouped[cat].forEach(function(p, idx) {
           var price = Number(p.price);
           if (!isFinite(price)) price = 0;
 
@@ -272,27 +291,69 @@ function loadInitialData() {
           var usesCustomOrderLines = p && p.usesCustomOrderLines === true;
 
           html += ''
-            + '<div class="product" style="background:' + theme.cardBg + ';border-color:' + theme.cardBorder + ';">'
-            +   '<div class="product-title">' + escapeHtml(p.name) + '</div>'
-            +   '<div class="row">'
+            + '<div class="product' + (idx >= previewLimit ? ' product-extra hidden' : '') + '" style="background:' + theme.cardBg + ';border-color:' + theme.cardBorder + ';">'
+            +   '<div class="product-head">'
+            +     '<div class="product-title">' + escapeHtml(p.name) + '</div>'
+            +     '<div class="product-price">$' + price + '</div>'
+            +   '</div>'
+            +   '<div class="product-tags">'
             +     '<span class="tag">' + escapeHtml(p.code) + '</span>'
             +     (isPreorder ? '<span class="tag" style="background:#fff1df;color:#8a4f12;">只供預訂</span>' : '')
             +     (usesCustomOrderLines ? '<span class="tag" style="background:#e8f5ff;color:#135a8a;">填寫編號</span>' : '')
             +   '</div>'
-            +   (usesCustomOrderLines ? '<div class="row inventory-text">請填寫編號及數量</div>' : '<div class="row inventory-text">' + (isPreorder ? '此貨品需時製作，出貨時間會稍長' : '庫存量：' + stock) + '</div>')
-            +   '<div class="row">售價：$' + price + '</div>'
+            +   '<div class="product-detail-row">'
+            +     (usesCustomOrderLines ? '<div class="inventory-text">請填寫編號及數量</div>' : '<div class="inventory-text">' + (isPreorder ? '需時製作，出貨時間會稍長' : '庫存量：' + stock) + '</div>')
+            +   '</div>'
             +   (p.remark && !isPreorder ? '<div class="row muted">' + escapeHtml(p.remark) + '</div>' : '')
             +   (usesCustomOrderLines
-                  ? '<div class="row">' + renderCustomOrderTable(p.code, p.name, price, isPreorder) + '</div>'
-                  : '<div class="row"><label>數量</label>' + renderQtySelect(p.code, p.name, price, stock, isPreorder) + '</div>')
+                  ? '<div class="row qty-row">' + renderCustomOrderTable(p.code, p.name, price, isPreorder) + '</div>'
+                  : '<div class="row qty-row"><label>數量</label>' + renderQtySelect(p.code, p.name, price, stock, isPreorder) + '</div>')
             + '</div>';
         });
 
         html += '</div>';
+        if (grouped[cat].length > previewLimit) {
+          html += '<button type="button" class="category-more-btn">顯示全部 ' + grouped[cat].length + ' 件</button>';
+        }
+        html += '</div>';
       });
 
       container.innerHTML = html;
+      container.querySelectorAll('.category-tab').forEach(function(tab) {
+        tab.addEventListener('click', function() {
+          switchProductCategory(tab.getAttribute('data-category'));
+        });
+      });
+      container.querySelectorAll('.category-more-btn').forEach(function(button) {
+        button.addEventListener('click', function() {
+          revealCategoryProducts(button);
+        });
+      });
       updateSummary();
+    }
+
+    function revealCategoryProducts(button) {
+      var panel = button && button.closest ? button.closest('.category-panel') : null;
+      if (!panel) return;
+
+      panel.querySelectorAll('.product-extra').forEach(function(item) {
+        item.classList.remove('hidden');
+      });
+      button.classList.add('hidden');
+    }
+
+    function switchProductCategory(category) {
+      ACTIVE_CATEGORY = String(category || '').trim();
+
+      document.querySelectorAll('.category-tab').forEach(function(tab) {
+        var isActive = tab.getAttribute('data-category') === ACTIVE_CATEGORY;
+        tab.classList.toggle('active', isActive);
+      });
+
+      document.querySelectorAll('.category-panel').forEach(function(panel) {
+        var isActive = panel.getAttribute('data-category-panel') === ACTIVE_CATEGORY;
+        panel.classList.toggle('active', isActive);
+      });
     }
 
     function renderQtySelect(code, name, price, stock, isPreorder) {
@@ -331,7 +392,7 @@ function loadInitialData() {
         + '<div class="custom-order-row custom-order-input-row">'
         +   '<input type="text" class="custom-line-code" placeholder="編號" oninput="updateSummary()">'
         +   '<input type="number" class="custom-line-qty" min="0" step="1" inputmode="numeric" placeholder="0" oninput="updateSummary()">'
-        +   '<button type="button" class="small-btn custom-remove-line" onclick="removeCustomOrderLine(this)">刪除</button>'
+        +   '<button type="button" class="small-btn custom-remove-line" aria-label="刪除此列" onclick="removeCustomOrderLine(this)">×</button>'
         + '</div>';
     }
 
@@ -546,7 +607,7 @@ function loadInitialData() {
 
     function updateSummary() {
       var inputs = document.querySelectorAll('.qty-select');
-      var parts = [];
+      var selectedItems = [];
       var total = 0;
       var hasPreorder = false;
       var itemCount = 0;
@@ -557,7 +618,12 @@ function loadInitialData() {
           var name = input.getAttribute('data-name');
           var price = Number(input.getAttribute('data-price') || 0);
           var isPreorder = input.getAttribute('data-is-preorder') === 'true';
-          parts.push(name + ' × ' + qty);
+          selectedItems.push({
+            name: name,
+            qty: qty,
+            detailText: '',
+            isPreorder: isPreorder
+          });
           total += qty * price;
           itemCount += qty;
           if (isPreorder) hasPreorder = true;
@@ -574,21 +640,21 @@ function loadInitialData() {
         }, 0);
 
         if (qty > 0) {
-          parts.push(name + ' × ' + qty + '（編號/數量：' + formatCustomOrderRowsText(lines) + '）');
+          selectedItems.push({
+            name: name,
+            qty: qty,
+            detailText: '編號/數量：' + formatCustomOrderRowsText(lines),
+            isPreorder: isPreorder
+          });
           total += qty * price;
           itemCount += qty;
           if (isPreorder) hasPreorder = true;
         }
       });
 
-      var summaryText = parts.length ? parts.join('、') : '請先選擇產品';
-      if (parts.length && hasPreorder) {
-        summaryText += '｜本訂單含需時製作貨品';
-      }
-
       var couponPreview = getCouponPreview_(total);
 
-      document.getElementById('orderSummary').innerText = summaryText;
+      document.getElementById('orderSummary').innerHTML = renderOrderSummaryHtml(selectedItems, itemCount, hasPreorder);
       document.getElementById('totalAmount').innerText = couponPreview.finalAmount;
 
       var hint = document.getElementById('couponHint');
@@ -598,6 +664,37 @@ function loadInitialData() {
       if (submitBtn) {
         submitBtn.disabled = itemCount === 0;
       }
+    }
+
+    function renderOrderSummaryHtml(items, totalQty, hasPreorder) {
+      if (!items || items.length === 0) {
+        return '<div class="summary-empty">請先選擇產品</div>';
+      }
+
+      var html = ''
+        + '<div class="summary-overview">'
+        +   '<span class="summary-chip">已選 ' + items.length + ' 款</span>'
+        +   '<span class="summary-chip">共 ' + totalQty + ' 件</span>'
+        + '</div>'
+        + '<div class="summary-lines">';
+
+      items.forEach(function(item) {
+        html += ''
+          + '<div class="summary-line">'
+          +   '<div>'
+          +     '<div class="summary-line-name">' + escapeHtml(item.name) + '</div>'
+          +     (item.detailText ? '<div class="summary-line-detail">' + escapeHtml(item.detailText) + '</div>' : '')
+          +   '</div>'
+          +   '<div class="summary-line-qty">× ' + item.qty + '</div>'
+          + '</div>';
+      });
+
+      html += '</div>';
+      if (hasPreorder) {
+        html += '<div class="summary-note">本訂單含需時製作貨品</div>';
+      }
+
+      return html;
     }
 
     function readCustomOrderRows(group, strict) {
