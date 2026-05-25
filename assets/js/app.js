@@ -265,9 +265,10 @@ function loadInitialData() {
       var html = '';
       html += '<div class="product-category-tabs" role="tablist" aria-label="產品分類">';
       categories.forEach(function(cat) {
+        var tabTheme = getCategoryTheme(cat);
         var tabActive = cat === ACTIVE_CATEGORY;
-        html += '<button type="button" class="category-tab' + (tabActive ? ' active' : '') + '" data-category="' + escapeHtml(cat) + '">'
-          + escapeHtml(cat) + ' · ' + grouped[cat].length
+        html += '<button type="button" class="category-tab' + (tabActive ? ' active' : '') + '" data-category="' + escapeHtml(cat) + '" style="background:' + tabTheme.titleBg + ';border-color:' + tabTheme.cardBorder + ';color:' + tabTheme.titleColor + ';">'
+          + escapeHtml(cat)
           + '</button>';
       });
       html += '</div>';
@@ -289,6 +290,10 @@ function loadInitialData() {
 
           var isPreorder = p && p.isPreorder === true;
           var usesCustomOrderLines = p && p.usesCustomOrderLines === true;
+          var infoHtml = '';
+          if (isPreorder) infoHtml += '<div class="inventory-text">需時製作，出貨時間會稍長</div>';
+          if (usesCustomOrderLines) infoHtml += '<div class="inventory-text">請填寫編號及數量</div>';
+          if (!isPreorder && !usesCustomOrderLines) infoHtml = '<div class="inventory-text">庫存量：' + stock + '</div>';
 
           html += ''
             + '<div class="product' + (idx >= previewLimit ? ' product-extra hidden' : '') + '" style="background:' + theme.cardBg + ';border-color:' + theme.cardBorder + ';">'
@@ -302,11 +307,11 @@ function loadInitialData() {
             +     (usesCustomOrderLines ? '<span class="tag" style="background:#e8f5ff;color:#135a8a;">填寫編號</span>' : '')
             +   '</div>'
             +   '<div class="product-detail-row">'
-            +     (usesCustomOrderLines ? '<div class="inventory-text">請填寫編號及數量</div>' : '<div class="inventory-text">' + (isPreorder ? '需時製作，出貨時間會稍長' : '庫存量：' + stock) + '</div>')
+            +     infoHtml
             +   '</div>'
             +   (p.remark && !isPreorder ? '<div class="row muted">' + escapeHtml(p.remark) + '</div>' : '')
             +   (usesCustomOrderLines
-                  ? '<div class="row qty-row">' + renderCustomOrderTable(p.code, p.name, price, isPreorder) + '</div>'
+                  ? '<div class="row qty-row"><label>數量</label>' + renderCustomOrderTable(p.code, p.name, price, isPreorder) + '</div>'
                   : '<div class="row qty-row"><label>數量</label>' + renderQtySelect(p.code, p.name, price, stock, isPreorder) + '</div>')
             + '</div>';
         });
