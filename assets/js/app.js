@@ -266,8 +266,6 @@ function loadInitialData() {
       if (!ACTIVE_CATEGORY || !grouped[ACTIVE_CATEGORY]) {
         ACTIVE_CATEGORY = categories[0] || '';
       }
-      var previewLimit = 8;
-
       var html = '';
       html += '<div class="product-category-tabs" role="tablist" aria-label="產品分類">';
       categories.forEach(function(cat) {
@@ -287,7 +285,7 @@ function loadInitialData() {
         html += '<div class="category-title" style="background:' + theme.titleBg + ';color:' + theme.titleColor + ';">' + escapeHtml(cat) + ' <span class="muted">(' + grouped[cat].length + ')</span></div>';
         html += '<div class="grid">';
 
-        grouped[cat].forEach(function(p, idx) {
+        grouped[cat].forEach(function(p) {
           var price = Number(p.price);
           if (!isFinite(price)) price = 0;
 
@@ -302,7 +300,7 @@ function loadInitialData() {
           if (!isPreorder && !usesCustomOrderLines) infoHtml = '<div class="inventory-text">庫存量：' + stock + '</div>';
 
           html += ''
-            + '<div class="product' + (idx >= previewLimit ? ' product-extra hidden' : '') + '" style="background:' + theme.cardBg + ';border-color:' + theme.cardBorder + ';">'
+            + '<div class="product" style="background:' + theme.cardBg + ';border-color:' + theme.cardBorder + ';">'
             +   '<div class="product-head">'
             +     '<div class="product-title">' + escapeHtml(p.name) + '</div>'
             +     '<div class="product-price">$' + price + '</div>'
@@ -323,9 +321,6 @@ function loadInitialData() {
         });
 
         html += '</div>';
-        if (grouped[cat].length > previewLimit) {
-          html += '<button type="button" class="category-more-btn">顯示全部 ' + grouped[cat].length + ' 件</button>';
-        }
         html += '</div>';
       });
 
@@ -333,11 +328,6 @@ function loadInitialData() {
       container.querySelectorAll('.category-tab').forEach(function(tab) {
         tab.addEventListener('click', function() {
           switchProductCategory(tab.getAttribute('data-category'));
-        });
-      });
-      container.querySelectorAll('.category-more-btn').forEach(function(button) {
-        button.addEventListener('click', function() {
-          revealCategoryProducts(button);
         });
       });
       updateSummary();
@@ -367,16 +357,6 @@ function loadInitialData() {
         tabs.style.width = '';
         container.style.paddingTop = '';
       }
-    }
-
-    function revealCategoryProducts(button) {
-      var panel = button && button.closest ? button.closest('.category-panel') : null;
-      if (!panel) return;
-
-      panel.querySelectorAll('.product-extra').forEach(function(item) {
-        item.classList.remove('hidden');
-      });
-      button.classList.add('hidden');
     }
 
     function switchProductCategory(category) {
